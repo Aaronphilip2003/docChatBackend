@@ -6,6 +6,7 @@ const multer = require('multer');
 const { MongoClient, ObjectId } = require('mongodb');
 const { GooglePaLMEmbeddings } = require("@langchain/community/embeddings/googlepalm");
 
+
 const app = express();
 const port = 8001;
 
@@ -224,8 +225,8 @@ app.get('/api/files', async (req, res) => {
         await client.connect();
         const db = client.db(dbName);
         const collection = db.collection(collectionName);
-        // Fetch both the title and text attributes, excluding _id
-        const documents = await collection.find({}, { projection: { title: 1, text: 1, _id: 0 } }).toArray();
+        // Fetch title, text, and _id attributes
+        const documents = await collection.find({}).toArray();
 
         res.json(documents);
     } catch (error) {
@@ -236,6 +237,25 @@ app.get('/api/files', async (req, res) => {
     }
 });
 
+app.delete('/api/files/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        // Check if id is a valid ObjectId
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid document ID' });
+        }
+        await client.connect();
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
+        await collection.deleteOne({ _id: new ObjectId(id) }); // Convert id to ObjectId
+        res.status(204).end(); // Successful deletion
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    } finally {
+        await client.close();
+    }
+});
 
 
 
